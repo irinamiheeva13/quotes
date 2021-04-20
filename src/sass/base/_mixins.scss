@@ -1,0 +1,19 @@
+@mixin circle__big {
+        position: absolute;
+        width: 324px;
+        height: 289px;
+        left: 109px;
+        top: 318px;
+        background: rgba(130, 94, 91, 0.3);
+        border-radius: 100%;
+}
+
+@mixin circle__small {
+        position: absolute;
+        width: 200px;
+        height: 182px;
+        background: rgba(237, 185, 182, 0.23);
+        border-radius: 100%;
+        left: 821px;
+        top: 73px;
+}

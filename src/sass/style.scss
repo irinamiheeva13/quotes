@@ -1,0 +1,29 @@
+@import 'base/variables';
+@import 'base/mixins';
+
+* {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: $bg-color;
+}
+
+.container {
+    width: 1140px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.divider {
+    margin-top: 40px;
+    width: 1140px;
+    height: 4px;
+    background: #C4C4C4;
+}
+
+@import './blocks/header';
+@import './blocks/quote';
+@import './blocks/footer';
+@import './blocks/projects';
+@import './blocks/about';
+@import './blocks/contacts';

@@ -1,0 +1,23 @@
+{
+  "name": "quotes",
+  "version": "1.0.0",
+  "description": "Quotes randomizer",
+  "main": "index.js",
+  "author": "Irina Mikheeva",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "yarn parcel src/index.html",
+    "css": "node-sass src/sass/style.scss src/css/style.css",
+    "watch:css": "yarn css -- -w",
+    "json:server": "json-server --watch src/js/db.json"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.12.5",
+    "prettier": "2.2.1"
+  },
+  "dependencies": {
+    "node-sass": "^5.0.0",
+    "normalize.css": "^8.0.1"
+  }
+}
