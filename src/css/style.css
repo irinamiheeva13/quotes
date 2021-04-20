@@ -207,7 +207,9 @@
     display: flex;
     justify-content: space-evenly;
     align-items: center; }
-  .contacts__link svg {
+  .contacts__link {
     background: #5B5B5B; }
-  .contacts__link:hover svg path {
-    fill: #825E5B; }
+    .contacts__link svg {
+      background: #5B5B5B; }
+    .contacts__link:hover svg path {
+      fill: #825E5B; }
