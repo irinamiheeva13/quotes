@@ -16,6 +16,13 @@
             width: 100%;
             height: 100%;
             border-radius: 20px;
+            &:hover {
+                transform: scale(1.1);
+                transition: 2s;
+            }
         }
+    }
+    &__link {
+        cursor: pointer;
     }
 }

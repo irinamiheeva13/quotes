@@ -159,6 +159,11 @@
       width: 100%;
       height: 100%;
       border-radius: 20px; }
+      .projects__item img:hover {
+        transform: scale(1.1);
+        transition: 2s; }
+  .projects__link {
+    cursor: pointer; }
 
 .about {
   margin-top: 45px; }
