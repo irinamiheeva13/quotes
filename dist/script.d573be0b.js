@@ -868,13 +868,13 @@ try {
   Function("r", "regeneratorRuntime = r")(runtime);
 }
 
-},{}],"js/lang.js":[function(require,module,exports) {
+},{}],"js/modules/langArr.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.langArr = void 0;
+exports.default = void 0;
 var langArr = {
   "projects": {
     "ru": "ПРОЕКТЫ",
@@ -897,31 +897,72 @@ var langArr = {
     "eng": "QUOTES"
   }
 };
-exports.langArr = langArr;
-},{}],"js/script.js":[function(require,module,exports) {
+var _default = langArr;
+exports.default = _default;
+},{}],"js/modules/changeLang.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.changeURLLanguage = changeURLLanguage;
+exports.changeLanguage = changeLanguage;
+
+var _langArr = _interopRequireDefault(require("./langArr"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function changeURLLanguage() {
+  var buttonRuEng = document.querySelector('.footer__wrapper');
+  buttonRuEng.addEventListener('click', function (e) {
+    var value = e.target.value;
+
+    if (value === "RU") {
+      location.href = window.location.pathname + '#' + "ru";
+    } else {
+      location.href = window.location.pathname + '#' + "eng";
+      location.reload();
+    }
+  });
+}
+
+function changeLanguage() {
+  var allLang = ['ru', 'eng'];
+  var hash = window.location.hash;
+  hash = hash.substr(1);
+
+  if (!allLang.includes(hash)) {
+    location.href = window.location.pathname + '#' + "ru";
+    location.reload();
+  }
+
+  for (var key in _langArr.default) {
+    var elem = document.querySelector('.lang-' + key);
+
+    if (elem) {
+      elem.innerHTML = _langArr.default[key][hash];
+    }
+  }
+}
+},{"./langArr":"js/modules/langArr.js"}],"js/script.js":[function(require,module,exports) {
 "use strict";
 
 require("regenerator-runtime/runtime");
 
-var _lang = require("./lang");
+var _changeLang = require("./modules/changeLang");
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
 
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 
-// Variables
 var quoteText = document.querySelector('.quote__text');
 var quoteAuthor = document.querySelector('.quote__author');
 var buttonMore = document.querySelector('.quote__button');
-var buttonRuEng = document.querySelector('.footer__wrapper');
-var allLang = ['ru', 'eng']; // Server 
-
 var url = 'https://api.jsonbin.io/b/60781eea5b165e19f6209c68/1';
 
 function getData(_x) {
   return _getData.apply(this, arguments);
-} //  Database Functions
-
+}
 
 function _getData() {
   _getData = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(url) {
@@ -976,41 +1017,10 @@ getData(url).then(function (data) {
 
   getRandomQuote(data);
   buttonHadler();
-}); // Language functions 
-
-buttonRuEng.addEventListener('click', changeURLLanguage);
-
-function changeURLLanguage(e) {
-  var value = e.target.value;
-
-  if (value === "RU") {
-    location.href = window.location.pathname + '#' + "ru";
-  } else {
-    location.href = window.location.pathname + '#' + "eng";
-    location.reload();
-  }
-}
-
-function changeLanguage() {
-  var hash = window.location.hash;
-  hash = hash.substr(1);
-
-  if (!allLang.includes(hash)) {
-    location.href = window.location.pathname + '#' + "ru";
-    location.reload();
-  }
-
-  for (var key in _lang.langArr) {
-    var elem = document.querySelector('.lang-' + key);
-
-    if (elem) {
-      elem.innerHTML = _lang.langArr[key][hash];
-    }
-  }
-}
-
-changeLanguage();
-},{"regenerator-runtime/runtime":"../node_modules/regenerator-runtime/runtime.js","./lang":"js/lang.js"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+});
+(0, _changeLang.changeURLLanguage)();
+(0, _changeLang.changeLanguage)();
+},{"regenerator-runtime/runtime":"../node_modules/regenerator-runtime/runtime.js","./modules/changeLang":"js/modules/changeLang.js"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -1038,7 +1048,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "65513" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50820" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
