@@ -118,7 +118,7 @@ parcelRequire = (function (modules, cache, entry, globalName) {
 
   return newRequire;
 })({"../node_modules/regenerator-runtime/runtime.js":[function(require,module,exports) {
-var define;
+var global = arguments[3];
 /**
  * Copyright (c) 2014-present, Facebook, Inc.
  *
@@ -126,7 +126,7 @@ var define;
  * LICENSE file in the root directory of this source tree.
  */
 
-var runtime = (function (exports) {
+!(function(global) {
   "use strict";
 
   var Op = Object.prototype;
@@ -137,23 +137,22 @@ var runtime = (function (exports) {
   var asyncIteratorSymbol = $Symbol.asyncIterator || "@@asyncIterator";
   var toStringTagSymbol = $Symbol.toStringTag || "@@toStringTag";
 
-  function define(obj, key, value) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true
-    });
-    return obj[key];
+  var inModule = typeof module === "object";
+  var runtime = global.regeneratorRuntime;
+  if (runtime) {
+    if (inModule) {
+      // If regeneratorRuntime is defined globally and we're in a module,
+      // make the exports object identical to regeneratorRuntime.
+      module.exports = runtime;
+    }
+    // Don't bother evaluating the rest of this file if the runtime was
+    // already defined globally.
+    return;
   }
-  try {
-    // IE 8 has a broken Object.defineProperty that only works on DOM objects.
-    define({}, "");
-  } catch (err) {
-    define = function(obj, key, value) {
-      return obj[key] = value;
-    };
-  }
+
+  // Define the runtime globally (as expected by generated code) as either
+  // module.exports (if we're in a module) or a new, empty object.
+  runtime = global.regeneratorRuntime = inModule ? module.exports : {};
 
   function wrap(innerFn, outerFn, self, tryLocsList) {
     // If outerFn provided and outerFn.prototype is a Generator, then outerFn.prototype instanceof Generator.
@@ -167,7 +166,7 @@ var runtime = (function (exports) {
 
     return generator;
   }
-  exports.wrap = wrap;
+  runtime.wrap = wrap;
 
   // Try/catch helper to minimize deoptimizations. Returns a completion
   // record like context.tryEntries[i].completion. This interface could
@@ -225,23 +224,20 @@ var runtime = (function (exports) {
     Generator.prototype = Object.create(IteratorPrototype);
   GeneratorFunction.prototype = Gp.constructor = GeneratorFunctionPrototype;
   GeneratorFunctionPrototype.constructor = GeneratorFunction;
-  GeneratorFunction.displayName = define(
-    GeneratorFunctionPrototype,
-    toStringTagSymbol,
-    "GeneratorFunction"
-  );
+  GeneratorFunctionPrototype[toStringTagSymbol] =
+    GeneratorFunction.displayName = "GeneratorFunction";
 
   // Helper for defining the .next, .throw, and .return methods of the
   // Iterator interface in terms of a single ._invoke method.
   function defineIteratorMethods(prototype) {
     ["next", "throw", "return"].forEach(function(method) {
-      define(prototype, method, function(arg) {
+      prototype[method] = function(arg) {
         return this._invoke(method, arg);
-      });
+      };
     });
   }
 
-  exports.isGeneratorFunction = function(genFun) {
+  runtime.isGeneratorFunction = function(genFun) {
     var ctor = typeof genFun === "function" && genFun.constructor;
     return ctor
       ? ctor === GeneratorFunction ||
@@ -251,12 +247,14 @@ var runtime = (function (exports) {
       : false;
   };
 
-  exports.mark = function(genFun) {
+  runtime.mark = function(genFun) {
     if (Object.setPrototypeOf) {
       Object.setPrototypeOf(genFun, GeneratorFunctionPrototype);
     } else {
       genFun.__proto__ = GeneratorFunctionPrototype;
-      define(genFun, toStringTagSymbol, "GeneratorFunction");
+      if (!(toStringTagSymbol in genFun)) {
+        genFun[toStringTagSymbol] = "GeneratorFunction";
+      }
     }
     genFun.prototype = Object.create(Gp);
     return genFun;
@@ -266,11 +264,11 @@ var runtime = (function (exports) {
   // `yield regeneratorRuntime.awrap(x)`, so that the runtime can test
   // `hasOwn.call(value, "__await")` to determine if the yielded value is
   // meant to be awaited.
-  exports.awrap = function(arg) {
+  runtime.awrap = function(arg) {
     return { __await: arg };
   };
 
-  function AsyncIterator(generator, PromiseImpl) {
+  function AsyncIterator(generator) {
     function invoke(method, arg, resolve, reject) {
       var record = tryCatch(generator[method], generator, arg);
       if (record.type === "throw") {
@@ -281,24 +279,32 @@ var runtime = (function (exports) {
         if (value &&
             typeof value === "object" &&
             hasOwn.call(value, "__await")) {
-          return PromiseImpl.resolve(value.__await).then(function(value) {
+          return Promise.resolve(value.__await).then(function(value) {
             invoke("next", value, resolve, reject);
           }, function(err) {
             invoke("throw", err, resolve, reject);
           });
         }
 
-        return PromiseImpl.resolve(value).then(function(unwrapped) {
+        return Promise.resolve(value).then(function(unwrapped) {
           // When a yielded Promise is resolved, its final value becomes
           // the .value of the Promise<{value,done}> result for the
-          // current iteration.
+          // current iteration. If the Promise is rejected, however, the
+          // result for this iteration will be rejected with the same
+          // reason. Note that rejections of yielded Promises are not
+          // thrown back into the generator function, as is the case
+          // when an awaited Promise is rejected. This difference in
+          // behavior between yield and await is important, because it
+          // allows the consumer to decide what to do with the yielded
+          // rejection (swallow it and continue, manually .throw it back
+          // into the generator, abandon iteration, whatever). With
+          // await, by contrast, there is no opportunity to examine the
+          // rejection reason outside the generator function, so the
+          // only option is to throw it from the await expression, and
+          // let the generator function handle the exception.
           result.value = unwrapped;
           resolve(result);
-        }, function(error) {
-          // If a rejected Promise was yielded, throw the rejection back
-          // into the async generator function so it can be handled there.
-          return invoke("throw", error, resolve, reject);
-        });
+        }, reject);
       }
     }
 
@@ -306,7 +312,7 @@ var runtime = (function (exports) {
 
     function enqueue(method, arg) {
       function callInvokeWithMethodAndArg() {
-        return new PromiseImpl(function(resolve, reject) {
+        return new Promise(function(resolve, reject) {
           invoke(method, arg, resolve, reject);
         });
       }
@@ -341,20 +347,17 @@ var runtime = (function (exports) {
   AsyncIterator.prototype[asyncIteratorSymbol] = function () {
     return this;
   };
-  exports.AsyncIterator = AsyncIterator;
+  runtime.AsyncIterator = AsyncIterator;
 
   // Note that simple async functions are implemented on top of
   // AsyncIterator objects; they just return a Promise for the value of
   // the final result produced by the iterator.
-  exports.async = function(innerFn, outerFn, self, tryLocsList, PromiseImpl) {
-    if (PromiseImpl === void 0) PromiseImpl = Promise;
-
+  runtime.async = function(innerFn, outerFn, self, tryLocsList) {
     var iter = new AsyncIterator(
-      wrap(innerFn, outerFn, self, tryLocsList),
-      PromiseImpl
+      wrap(innerFn, outerFn, self, tryLocsList)
     );
 
-    return exports.isGeneratorFunction(outerFn)
+    return runtime.isGeneratorFunction(outerFn)
       ? iter // If outerFn is a generator, return the full iterator.
       : iter.next().then(function(result) {
           return result.done ? result.value : iter.next();
@@ -451,8 +454,7 @@ var runtime = (function (exports) {
       context.delegate = null;
 
       if (context.method === "throw") {
-        // Note: ["return"] must be used for ES3 parsing compatibility.
-        if (delegate.iterator["return"]) {
+        if (delegate.iterator.return) {
           // If the delegate iterator has a return method, give it a
           // chance to clean up.
           context.method = "return";
@@ -526,7 +528,7 @@ var runtime = (function (exports) {
   // unified ._invoke helper method.
   defineIteratorMethods(Gp);
 
-  define(Gp, toStringTagSymbol, "Generator");
+  Gp[toStringTagSymbol] = "Generator";
 
   // A Generator should always return itself as the iterator object when the
   // @@iterator function is called on it. Some browsers' implementations of the
@@ -572,7 +574,7 @@ var runtime = (function (exports) {
     this.reset(true);
   }
 
-  exports.keys = function(object) {
+  runtime.keys = function(object) {
     var keys = [];
     for (var key in object) {
       keys.push(key);
@@ -633,7 +635,7 @@ var runtime = (function (exports) {
     // Return an iterator with no values.
     return { next: doneResult };
   }
-  exports.values = values;
+  runtime.values = values;
 
   function doneResult() {
     return { value: undefined, done: true };
@@ -838,189 +840,110 @@ var runtime = (function (exports) {
       return ContinueSentinel;
     }
   };
+})(
+  // In sloppy mode, unbound `this` refers to the global object, fallback to
+  // Function constructor if we're in global strict mode. That is sadly a form
+  // of indirect eval which violates Content Security Policy.
+  (function() { return this })() || Function("return this")()
+);
 
-  // Regardless of whether this script is executing as a CommonJS module
-  // or not, return the runtime object so that we can declare the variable
-  // regeneratorRuntime in the outer scope, which allows this module to be
-  // injected easily by `bin/regenerator --include-runtime script.js`.
-  return exports;
-
-}(
-  // If this script is executing as a CommonJS module, use module.exports
-  // as the regeneratorRuntime namespace. Otherwise create a new empty
-  // object. Either way, the resulting object will be used to initialize
-  // the regeneratorRuntime variable at the top of this file.
-  typeof module === "object" ? module.exports : {}
-));
-
-try {
-  regeneratorRuntime = runtime;
-} catch (accidentalStrictMode) {
-  // This module should not be running in strict mode, so the above
-  // assignment should always work unless something is misconfigured. Just
-  // in case runtime.js accidentally runs in strict mode, we can escape
-  // strict mode using a global Function call. This could conceivably fail
-  // if a Content Security Policy forbids using Function, but in that case
-  // the proper solution is to fix the accidental strict mode problem. If
-  // you've misconfigured your bundler to force strict mode and applied a
-  // CSP to forbid Function, and you're not willing to fix either of those
-  // problems, please detail your unique predicament in a GitHub issue.
-  Function("r", "regeneratorRuntime = r")(runtime);
-}
-
-},{}],"js/modules/langArr.js":[function(require,module,exports) {
+},{}],"js/modules/render.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = void 0;
-var langArr = {
-  "projects": {
-    "ru": "ПРОЕКТЫ",
-    "eng": "PROJECTS"
-  },
-  "about": {
-    "ru": "ОБО МНЕ",
-    "eng": "ABOUT"
-  },
-  "contacts": {
-    "ru": "КОНТАКТЫ",
-    "eng": "CONTACTS"
-  },
-  "button": {
-    "ru": "ЕЩЕ",
-    "eng": "MORE"
-  },
-  "quotes": {
-    "ru": "ЦИТАТЫ",
-    "eng": "QUOTES"
-  }
-};
-var _default = langArr;
-exports.default = _default;
-},{}],"js/modules/changeLang.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.changeURLLanguage = changeURLLanguage;
-exports.changeLanguage = changeLanguage;
-
-var _langArr = _interopRequireDefault(require("./langArr"));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function changeURLLanguage() {
-  var buttonRuEng = document.querySelector('.footer__wrapper');
-  buttonRuEng.addEventListener('click', function (e) {
-    var value = e.target.value;
-
-    if (value === "RU") {
-      location.href = window.location.pathname + '#' + "ru";
-    } else {
-      location.href = window.location.pathname + '#' + "eng";
-      location.reload();
-    }
-  });
-}
-
-function changeLanguage() {
-  var allLang = ['ru', 'eng'];
-  var hash = window.location.hash;
-  hash = hash.substr(1);
-
-  if (!allLang.includes(hash)) {
-    location.href = window.location.pathname + '#' + "ru";
-    location.reload();
-  }
-
-  for (var key in _langArr.default) {
-    var elem = document.querySelector('.lang-' + key);
-
-    if (elem) {
-      elem.innerHTML = _langArr.default[key][hash];
-    }
-  }
-}
-},{"./langArr":"js/modules/langArr.js"}],"js/script.js":[function(require,module,exports) {
-"use strict";
 
 require("regenerator-runtime/runtime");
-
-var _changeLang = require("./modules/changeLang");
 
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
 
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 
-var quoteText = document.querySelector('.quote__text');
-var quoteAuthor = document.querySelector('.quote__author');
-var buttonMore = document.querySelector('.quote__button');
-var url = 'https://api.jsonbin.io/b/60781eea5b165e19f6209c68/1';
+function renderData() {
+  var quoteText = document.querySelector('.quote__text');
+  var quoteAuthor = document.querySelector('.quote__author');
+  var buttonMore = document.querySelector('.quote__button');
+  var url = 'https://api.jsonbin.io/b/60781eea5b165e19f6209c68/1';
 
-function getData(_x) {
-  return _getData.apply(this, arguments);
-}
+  function getData(_x) {
+    return _getData.apply(this, arguments);
+  }
 
-function _getData() {
-  _getData = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(url) {
-    var response, json;
-    return regeneratorRuntime.wrap(function _callee$(_context) {
-      while (1) {
-        switch (_context.prev = _context.next) {
-          case 0:
-            _context.next = 2;
-            return fetch(url);
+  function _getData() {
+    _getData = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(url) {
+      var response, json;
+      return regeneratorRuntime.wrap(function _callee$(_context) {
+        while (1) {
+          switch (_context.prev = _context.next) {
+            case 0:
+              _context.next = 2;
+              return fetch(url);
 
-          case 2:
-            response = _context.sent;
+            case 2:
+              response = _context.sent;
 
-            if (!response.ok) {
-              _context.next = 10;
-              break;
-            }
+              if (!response.ok) {
+                _context.next = 10;
+                break;
+              }
 
-            _context.next = 6;
-            return response.json();
+              _context.next = 6;
+              return response.json();
 
-          case 6:
-            json = _context.sent;
-            return _context.abrupt("return", json);
+            case 6:
+              json = _context.sent;
+              return _context.abrupt("return", json);
 
-          case 10:
-            alert("Ошибка HTTP: " + response.status);
+            case 10:
+              alert("Ошибка HTTP: " + response.status);
 
-          case 11:
-          case "end":
-            return _context.stop();
+            case 11:
+            case "end":
+              return _context.stop();
+          }
         }
-      }
-    }, _callee);
-  }));
-  return _getData.apply(this, arguments);
+      }, _callee);
+    }));
+    return _getData.apply(this, arguments);
+  }
+
+  var promise = getData(url);
+  console.log(promise);
+  promise.then(function (data) {
+    var getRandomQuote = function getRandomQuote() {
+      var randomQuote = data.quoteDatabase[Math.floor(Math.random() * data.quoteDatabase.length)];
+      quoteText.innerHTML = randomQuote.text;
+      quoteAuthor.innerHTML = randomQuote.author;
+    };
+
+    var buttonHadler = function buttonHadler() {
+      buttonMore.addEventListener('click', function () {
+        getRandomQuote(data);
+      });
+    };
+
+    getRandomQuote(data);
+    buttonHadler();
+  });
 }
 
-getData(url).then(function (data) {
-  var getRandomQuote = function getRandomQuote() {
-    var randomQuote = data.quoteDatabase[Math.floor(Math.random() * data.quoteDatabase.length)];
-    quoteText.innerHTML = randomQuote.text;
-    quoteAuthor.innerHTML = randomQuote.author;
-  };
+var _default = renderData;
+exports.default = _default;
+},{"regenerator-runtime/runtime":"../node_modules/regenerator-runtime/runtime.js"}],"js/script.js":[function(require,module,exports) {
+"use strict";
 
-  var buttonHadler = function buttonHadler() {
-    buttonMore.addEventListener('click', function () {
-      getRandomQuote(data);
-    });
-  };
+require("regenerator-runtime/runtime");
 
-  getRandomQuote(data);
-  buttonHadler();
+var _render = _interopRequireDefault(require("./modules/render"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+window.addEventListener('DOMContentLoaded', function () {
+  (0, _render.default)();
 });
-(0, _changeLang.changeURLLanguage)();
-(0, _changeLang.changeLanguage)();
-},{"regenerator-runtime/runtime":"../node_modules/regenerator-runtime/runtime.js","./modules/changeLang":"js/modules/changeLang.js"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"regenerator-runtime/runtime":"../node_modules/regenerator-runtime/runtime.js","./modules/render":"js/modules/render.js"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -1048,7 +971,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50820" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "53630" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
